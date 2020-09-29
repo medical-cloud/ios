@@ -66,7 +66,7 @@ class tableAccount: Object {
     @objc dynamic var storageLocation = ""
     @objc dynamic var subadmin = ""
     @objc dynamic var twitter = ""
-    @objc dynamic var url = ""
+    @objc dynamic var urlBase = ""
     @objc dynamic var user = ""
     @objc dynamic var userID = ""
     @objc dynamic var webpage = ""
@@ -205,6 +205,7 @@ class tableDirectEditingEditors: Object {
 class tableDirectory: Object {
     
     @objc dynamic var account = ""
+    @objc dynamic var creationDate: NSDate? = nil
     @objc dynamic var e2eEncrypted: Bool = false
     @objc dynamic var etag = ""
     @objc dynamic var favorite: Bool = false
@@ -279,13 +280,13 @@ class tableGPS: Object {
 class tableLocalFile: Object {
     
     @objc dynamic var account = ""
-    @objc dynamic var date = NSDate()
     @objc dynamic var etag = ""
-    @objc dynamic var exifDate = NSDate()
+    @objc dynamic var exifDate: NSDate? = nil
     @objc dynamic var exifLatitude = ""
     @objc dynamic var exifLongitude = ""
     @objc dynamic var favorite: Bool = false
     @objc dynamic var fileName = ""
+    @objc dynamic var lastAccessDate: NSDate? = nil
     @objc dynamic var ocId = ""
     @objc dynamic var offline: Bool = false
     @objc dynamic var size: Double = 0
@@ -308,12 +309,15 @@ class tableMetadata: Object {
     @objc dynamic var e2eEncrypted: Bool = false
     @objc dynamic var edited: Bool = false
     @objc dynamic var etag = ""
+    @objc dynamic var ext = ""
     @objc dynamic var favorite: Bool = false
     @objc dynamic var fileId = ""
     @objc dynamic var fileName = ""
     @objc dynamic var fileNameView = ""
+    @objc dynamic var fileNameWithoutExt = ""
     @objc dynamic var hasPreview: Bool = false
     @objc dynamic var iconName = ""
+    @objc dynamic var livePhoto: Bool = false
     @objc dynamic var mountType = ""
     @objc dynamic var ocId = ""
     @objc dynamic var ownerId = ""

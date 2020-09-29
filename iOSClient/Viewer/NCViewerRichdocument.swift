@@ -112,14 +112,14 @@ class NCViewerRichdocument: WKWebView, WKNavigationDelegate, WKScriptMessageHand
                 viewController.includeDirectoryE2EEncryption = false
                 viewController.includeImages = true
                 viewController.type = ""
-                viewController.layoutViewSelect = k_layout_view_richdocument
+                viewController.keyLayout = k_layout_view_richdocument
                 
                 navigationController.modalPresentationStyle = UIModalPresentationStyle.fullScreen
                 self.viewController.present(navigationController, animated: true, completion: nil)
             }
             
             if message.body as? String == "share" {
-                NCMainCommon.sharedInstance.openShare(ViewController: viewController, metadata: metadata, indexPage: 2)
+                NCMainCommon.shared.openShare(ViewController: viewController, metadata: metadata, indexPage: 2)
             }
             
             if let param = message.body as? Dictionary<AnyHashable,Any> {
@@ -142,7 +142,7 @@ class NCViewerRichdocument: WKWebView, WKNavigationDelegate, WKScriptMessageHand
                         let fileNameLocalPath = CCUtility.getDirectoryUserData() + "/" + filename
                     
                         if type == "print" {
-                            NCUtility.sharedInstance.startActivityIndicator(view: self)
+                            NCUtility.shared.startActivityIndicator(view: self)
                         }
                         
                         NCCommunication.shared.download(serverUrlFileName: urlString, fileNameLocalPath: fileNameLocalPath, requestHandler: { (_) in
@@ -153,7 +153,7 @@ class NCViewerRichdocument: WKWebView, WKNavigationDelegate, WKScriptMessageHand
                             
                             if errorCode == 0 && account == self.metadata.account {
                                 if type == "print" {
-                                    NCUtility.sharedInstance.stopActivityIndicator()
+                                    NCUtility.shared.stopActivityIndicator()
                                     let pic = UIPrintInteractionController.shared
                                     let printInfo = UIPrintInfo.printInfo()
                                     printInfo.outputType = UIPrintInfo.OutputType.general
@@ -205,14 +205,14 @@ class NCViewerRichdocument: WKWebView, WKNavigationDelegate, WKScriptMessageHand
     
     //MARK: -
     
-    func dismissSelect(serverUrl: String?, metadata: tableMetadata?, type: String, buttonType: String, overwrite: Bool) {
+    func dismissSelect(serverUrl: String?, metadata: tableMetadata?, type: String, array: [Any], buttonType: String, overwrite: Bool) {
         
         if serverUrl != nil && metadata != nil {
             
-            let path = CCUtility.returnFileNamePath(fromFileName: metadata!.fileName, serverUrl: serverUrl!, activeUrl: appDelegate.activeUrl)!
+            let path = CCUtility.returnFileNamePath(fromFileName: metadata!.fileName, serverUrl: serverUrl!, urlBase: appDelegate.urlBase, account: metadata!.account)!
             
             NCCommunication.shared.createAssetRichdocuments(path: path) { (account, url, errorCode, errorDescription) in
-                if errorCode == 0 && account == self.appDelegate.activeAccount {
+                if errorCode == 0 && account == self.appDelegate.account {
                     let functionJS = "OCA.RichDocuments.documentsMain.postAsset('\(metadata!.fileNameView)', '\(url!)')"
                     self.evaluateJavaScript(functionJS, completionHandler: { (result, error) in })
                 } else if errorCode != 0 {
@@ -226,10 +226,10 @@ class NCViewerRichdocument: WKWebView, WKNavigationDelegate, WKScriptMessageHand
     
     func select(_ metadata: tableMetadata!, serverUrl: String!) {
         
-        let path = CCUtility.returnFileNamePath(fromFileName: metadata!.fileName, serverUrl: serverUrl!, activeUrl: appDelegate.activeUrl)!
+        let path = CCUtility.returnFileNamePath(fromFileName: metadata!.fileName, serverUrl: serverUrl!, urlBase: appDelegate.urlBase, account: metadata!.account)!
         
         NCCommunication.shared.createAssetRichdocuments(path: path) { (account, url, errorCode, errorDescription) in
-            if errorCode == 0 && account == self.appDelegate.activeAccount {
+            if errorCode == 0 && account == self.appDelegate.account {
                 let functionJS = "OCA.RichDocuments.documentsMain.postAsset('\(metadata.fileNameView)', '\(url!)')"
                 self.evaluateJavaScript(functionJS, completionHandler: { (result, error) in })
             } else if errorCode != 0 {
@@ -259,6 +259,6 @@ class NCViewerRichdocument: WKWebView, WKNavigationDelegate, WKScriptMessageHand
     }
     
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        NCUtility.sharedInstance.stopActivityIndicator()
+        NCUtility.shared.stopActivityIndicator()
     }
 }

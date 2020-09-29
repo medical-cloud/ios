@@ -63,9 +63,8 @@ class CCMore: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
         // Notification
         NotificationCenter.default.addObserver(self, selector: #selector(changeUserProfile), name: NSNotification.Name(rawValue: k_notificationCenter_changeUserProfile), object: nil)
-
-        // Theming view
         NotificationCenter.default.addObserver(self, selector: #selector(changeTheming), name: NSNotification.Name(rawValue: k_notificationCenter_changeTheming), object: nil)
+        
         changeTheming()
     }
 
@@ -124,7 +123,7 @@ class CCMore: UIViewController, UITableViewDelegate, UITableViewDataSource {
         functionMenu.append(item)
 
         // ITEM : Trash
-        let serverVersionMajor = NCManageDatabase.sharedInstance.getCapabilitiesServerInt(account: appDelegate.activeAccount, elements: NCElementsJSON.shared.capabilitiesVersionMajor)
+        let serverVersionMajor = NCManageDatabase.sharedInstance.getCapabilitiesServerInt(account: appDelegate.account, elements: NCElementsJSON.shared.capabilitiesVersionMajor)
         if serverVersionMajor >= Int(k_trash_version_available) {
 
             item = NCCommunicationExternalSite()
@@ -134,9 +133,23 @@ class CCMore: UIViewController, UITableViewDelegate, UITableViewDataSource {
             functionMenu.append(item)
         }
 
+        // ITEM : Settings
+        item = NCCommunicationExternalSite()
+        item.name = "_settings_"
+        item.icon = "settings"
+        item.url = "segueSettings"
+        settingsMenu.append(item)
+
+        if (quotaMenu.count > 0) {
+            let item = quotaMenu[0]
+            labelQuotaExternalSite.text = item.name
+        }
+        
+        changeUserProfile()
+
         // ITEM : External
         if NCBrandOptions.sharedInstance.disable_more_external_site == false {
-            if let externalSites = NCManageDatabase.sharedInstance.getAllExternalSites(account: appDelegate.activeAccount) {
+            if let externalSites = NCManageDatabase.sharedInstance.getAllExternalSites(account: appDelegate.account) {
                 for externalSite in externalSites {
                     if (externalSite.type == "link" && externalSite.name != "" && externalSite.url != "") {
                         item = NCCommunicationExternalSite()
@@ -153,23 +166,13 @@ class CCMore: UIViewController, UITableViewDelegate, UITableViewDataSource {
                         quotaMenu.append(item)
                     }
                 }
+                tableView.reloadData()
+            } else {
+                tableView.reloadData()
             }
+        } else {
+            tableView.reloadData()
         }
-
-        // ITEM : Settings
-        item = NCCommunicationExternalSite()
-        item.name = "_settings_"
-        item.icon = "settings"
-        item.url = "segueSettings"
-        settingsMenu.append(item)
-
-        if (quotaMenu.count > 0) {
-            let item = quotaMenu[0]
-            labelQuotaExternalSite.text = item.name
-        }
-
-        changeUserProfile()
-        tableView.reloadData()
     }
 
     @objc func changeTheming() {
@@ -208,7 +211,6 @@ class CCMore: UIViewController, UITableViewDelegate, UITableViewDataSource {
         let quotaUsed: String = CCUtility.transformedSize(Double(tabAccount.quotaUsed))
 
         labelQuota.text = String.localizedStringWithFormat(NSLocalizedString("_quota_using_", comment: ""), quotaUsed, quota)
-        tableView.reloadData()
     }
 
     func numberOfSections(in tableView: UITableView) -> Int {
@@ -266,7 +268,7 @@ class CCMore: UIViewController, UITableViewDelegate, UITableViewDataSource {
         cell.accessoryType = UITableViewCell.AccessoryType.disclosureIndicator
 
         if (indexPath.section == 0) {
-            let fileNamePath = CCUtility.getDirectoryUserData() + "/" + CCUtility.getStringUser(appDelegate.activeUser, activeUrl: appDelegate.activeUrl) + "-" + appDelegate.activeUser + ".png"
+            let fileNamePath = CCUtility.getDirectoryUserData() + "/" + CCUtility.getStringUser(appDelegate.user, urlBase: appDelegate.urlBase) + "-" + appDelegate.user + ".png"
 
             if let themingAvatarFile = UIImage.init(contentsOfFile: fileNamePath) {
                 cell.imageIcon?.image = themingAvatarFile
@@ -366,7 +368,7 @@ class CCMore: UIViewController, UITableViewDelegate, UITableViewDataSource {
             let actionYes = UIAlertAction(title: NSLocalizedString("_yes_delete_", comment: ""), style: .default) { (action: UIAlertAction) in
 
                 let manageAccount = CCManageAccount()
-                manageAccount.delete(self.appDelegate.activeAccount)
+                manageAccount.delete(self.appDelegate.account)
 
                 self.appDelegate.openLoginView(self, selector: Int(k_intro_login), openLoginWeb: false)
             }

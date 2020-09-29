@@ -76,7 +76,7 @@
 //
 // orderByField : nil, date, typeFile
 //
-+ (CCSectionDataSourceMetadata *)creataDataSourseSectionMetadata:(NSArray *)arrayMetadatas listProgressMetadata:(NSMutableDictionary *)listProgressMetadata groupByField:(NSString *)groupByField filterTypeFileImage:(BOOL)filterTypeFileImage filterTypeFileVideo:(BOOL)filterTypeFileVideo filterLivePhoto:(BOOL)filterLivePhoto sorted:(NSString *)sorted ascending:(BOOL)ascending activeAccount:(NSString *)activeAccount
++ (CCSectionDataSourceMetadata *)creataDataSourseSectionMetadata:(NSArray *)arrayMetadatas listProgressMetadata:(NSMutableDictionary *)listProgressMetadata groupBy:(NSString *)groupBy filterTypeFileImage:(BOOL)filterTypeFileImage filterTypeFileVideo:(BOOL)filterTypeFileVideo filterLivePhoto:(BOOL)filterLivePhoto sort:(NSString *)sort ascending:(BOOL)ascending directoryOnTop:(BOOL)directoryOnTop account:(NSString *)account
 {
     id dataSection;
     
@@ -90,18 +90,9 @@
     */
     
     if ([CCUtility getLivePhoto] && filterLivePhoto) {
-        arraySoprtedMetadatas = [arrayMetadatas sortedArrayUsingComparator:^NSComparisonResult(tableMetadata *obj1, tableMetadata *obj2) {
-            return [obj1.fileName compare:obj2.fileName options:NSCaseInsensitiveSearch range:NSMakeRange(0,[obj1.fileName length]) locale:[NSLocale currentLocale]];
-        }];
-        NSString *prevFileNameImage;
-        for (tableMetadata *metadata in arraySoprtedMetadatas) {
-            if ([metadata.typeFile isEqualToString:k_metadataTypeFile_image]) {
-                prevFileNameImage = metadata.fileNameView.stringByDeletingPathExtension;
-            }
-            if ([metadata.typeFile isEqualToString:k_metadataTypeFile_video]) {
-                if ([metadata.fileNameView.stringByDeletingPathExtension isEqualToString:prevFileNameImage]) {
-                    [filterocId addObject:metadata.ocId];
-                }
+        for (tableMetadata *metadata in arrayMetadatas) {
+            if ([metadata.ext isEqualToString:@"mov"] && metadata.livePhoto) {
+                [filterocId addObject:metadata.ocId];
             }
         }
     }
@@ -112,18 +103,18 @@
     
     arraySoprtedMetadatas = [arrayMetadatas sortedArrayUsingComparator:^NSComparisonResult(tableMetadata *obj1, tableMetadata *obj2) {
         // Sort with Locale
-        if ([sorted isEqualToString:@"date"]) {
+        if ([sort isEqualToString:@"date"]) {
             if (ascending) return [obj1.date compare:obj2.date];
             else return [obj2.date compare:obj1.date];
-        } else if ([sorted isEqualToString:@"sessionTaskIdentifier"]) {
+        } else if ([sort isEqualToString:@"sessionTaskIdentifier"]) {
             if (ascending) return (obj1.sessionTaskIdentifier < obj2.sessionTaskIdentifier);
             else return (obj1.sessionTaskIdentifier > obj2.sessionTaskIdentifier);
-        } else if ([sorted isEqualToString:@"size"]) {
+        } else if ([sort isEqualToString:@"size"]) {
             if (ascending) return (obj1.size < obj2.size);
             else return (obj1.size > obj2.size);
         } else {
-            if (ascending) return [obj1.fileName compare:obj2.fileName options:NSCaseInsensitiveSearch range:NSMakeRange(0,[obj1.fileName length]) locale:[NSLocale currentLocale]];
-            else return [obj2.fileName compare:obj1.fileName options:NSCaseInsensitiveSearch range:NSMakeRange(0,[obj2.fileName length]) locale:[NSLocale currentLocale]];
+            if (ascending) return [obj1.fileNameView compare:obj2.fileNameView options:NSCaseInsensitiveSearch range:NSMakeRange(0,[obj1.fileNameView length]) locale:[NSLocale currentLocale]];
+            else return [obj2.fileNameView compare:obj1.fileNameView options:NSCaseInsensitiveSearch range:NSMakeRange(0,[obj2.fileNameView length]) locale:[NSLocale currentLocale]];
         }
     }];
     
@@ -133,7 +124,6 @@
     
     NSInteger numDirectory = 0;
     NSInteger numDirectoryFavorite = 0;
-    BOOL directoryOnTop = [CCUtility getDirectoryOnTop];
     NSMutableArray *metadataFilesFavorite = [NSMutableArray new];
     
     for (tableMetadata *metadata in arraySoprtedMetadatas) {
@@ -143,7 +133,7 @@
             continue;
         }
         
-        if ([listProgressMetadata objectForKey:metadata.ocId] && [groupByField isEqualToString:@"session"]) {
+        if ([listProgressMetadata objectForKey:metadata.ocId] && [groupBy isEqualToString:@"session"]) {
             
             [sectionDataSource.metadatas insertObject:metadata atIndex:0];
             
@@ -175,15 +165,15 @@
     
     for (tableMetadata *metadata in  sectionDataSource.metadatas) {
         
-        if ([metadata.session length] > 0 && [groupByField isEqualToString:@"session"]) {
+        if ([metadata.session length] > 0 && [groupBy isEqualToString:@"session"]) {
             
             if ([metadata.session containsString:@"wwan"]) dataSection = [@"." stringByAppendingString:metadata.session];
             else dataSection = metadata.session;
         }
-        else if ([groupByField isEqualToString:@"none"]) dataSection = @"_none_";
-        else if ([groupByField isEqualToString:@"date"]) dataSection = [CCUtility datetimeWithOutTime:metadata.date];
-        else if ([groupByField isEqualToString:@"alphabetic"]) dataSection = [[metadata.fileNameView substringToIndex:1] uppercaseString];
-        else if ([groupByField isEqualToString:@"typefile"]) dataSection = metadata.typeFile;
+        else if ([groupBy isEqualToString:@"none"]) dataSection = @"_none_";
+        else if ([groupBy isEqualToString:@"date"]) dataSection = [CCUtility datetimeWithOutTime:metadata.date];
+        else if ([groupBy isEqualToString:@"alphabetic"]) dataSection = [[metadata.fileNameView substringToIndex:1] uppercaseString];
+        else if ([groupBy isEqualToString:@"typefile"]) dataSection = metadata.typeFile;
         if (!dataSection) dataSection = @"_none_";
         
         NSMutableArray *metadatasSection = [sectionDataSource.sectionArrayRow objectForKey:dataSection];
@@ -218,7 +208,7 @@
     
     NSArray *sortSections = [[sectionDataSource.sectionArrayRow allKeys] sortedArrayUsingComparator:^NSComparisonResult(id obj1, id obj2) {
         
-        if ([groupByField isEqualToString:@"session"]) {
+        if ([groupBy isEqualToString:@"session"]) {
         
             if ([obj1 isKindOfClass:[NSString class]] && [obj1 containsString:@"download"]) return NSOrderedAscending;
             if ([obj2 isKindOfClass:[NSString class]] && [obj2 containsString:@"download"]) return NSOrderedDescending;
@@ -323,7 +313,7 @@
 
 @implementation CCSectionActivity
 
-+ (CCSectionDataSourceActivity *)creataDataSourseSectionActivity:(NSArray *)records activeAccount:(NSString *)activeAccount
++ (CCSectionDataSourceActivity *)creataDataSourseSectionActivity:(NSArray *)records account:(NSString *)account
 {
     CCSectionDataSourceActivity *sectionDataSource = [CCSectionDataSourceActivity new];
     NSDate *oldDate = [NSDate date];

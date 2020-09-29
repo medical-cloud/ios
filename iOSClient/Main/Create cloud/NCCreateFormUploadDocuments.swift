@@ -56,7 +56,7 @@ import NCCommunication
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        if serverUrl == CCUtility.getHomeServerUrlActiveUrl(appDelegate.activeUrl) {
+        if serverUrl == NCUtility.shared.getHomeServer(urlBase: appDelegate.urlBase, account: appDelegate.account) {
             fileNameFolder = "/"
         } else {
             fileNameFolder = (serverUrl as NSString).lastPathComponent
@@ -74,8 +74,8 @@ import NCCommunication
         // title 
         self.title = titleForm
       
-        // Theming view
         NotificationCenter.default.addObserver(self, selector: #selector(changeTheming), name: NSNotification.Name(rawValue: k_notificationCenter_changeTheming), object: nil)
+
         changeTheming()
         
         // load the templates available
@@ -211,14 +211,14 @@ import NCCommunication
     
     // MARK: - Action
     
-    func dismissSelect(serverUrl: String?, metadata: tableMetadata?, type: String, buttonType: String, overwrite: Bool) {
+    func dismissSelect(serverUrl: String?, metadata: tableMetadata?, type: String, array: [Any], buttonType: String, overwrite: Bool) {
         
         guard let serverUrl = serverUrl else {
             return
         }
         
         self.serverUrl = serverUrl
-        if serverUrl == CCUtility.getHomeServerUrlActiveUrl(appDelegate.activeUrl) {
+        if serverUrl == NCUtility.shared.getHomeServer(urlBase: appDelegate.urlBase, account: appDelegate.account) {
             fileNameFolder = "/"
         } else {
             fileNameFolder = (serverUrl as NSString).lastPathComponent
@@ -242,7 +242,7 @@ import NCCommunication
         viewController.hideButtonCreateFolder = false
         viewController.includeDirectoryE2EEncryption = false
         viewController.includeImages = false
-        viewController.layoutViewSelect = k_layout_view_move
+        viewController.keyLayout = k_layout_view_move
         viewController.selectFile = false
         viewController.titleButtonDone = NSLocalizedString("_select_", comment: "")
         viewController.type = ""
@@ -268,13 +268,13 @@ import NCCommunication
         } else {
             
             let result = NCCommunicationCommon.shared.getInternalContenType(fileName: fileNameForm as! String, contentType: "", directory: false)
-            if NCUtility.sharedInstance.isDirectEditing(account: appDelegate.activeAccount, contentType: result.contentType) == nil {
+            if NCUtility.shared.isDirectEditing(account: appDelegate.account, contentType: result.contentType) == nil {
                 fileNameForm = (fileNameForm as! NSString).deletingPathExtension + "." + fileNameExtension
             }
             
-            if NCUtility.sharedInstance.getMetadataConflict(account: appDelegate.activeAccount, serverUrl: serverUrl, fileName: String(describing: fileNameForm)) != nil {
+            if NCUtility.shared.getMetadataConflict(account: appDelegate.account, serverUrl: serverUrl, fileName: String(describing: fileNameForm)) != nil {
                 
-                let metadataForUpload = NCManageDatabase.sharedInstance.createMetadata(account: appDelegate.activeAccount, fileName: String(describing: fileNameForm), ocId: "", serverUrl: serverUrl, url: "", contentType: "")
+                let metadataForUpload = NCManageDatabase.sharedInstance.createMetadata(account: appDelegate.account, fileName: String(describing: fileNameForm), ocId: "", serverUrl: serverUrl, urlBase: appDelegate.urlBase, url: "", contentType: "", livePhoto: false)
                 
                 guard let conflictViewController = UIStoryboard(name: "NCCreateFormUploadConflict", bundle: nil).instantiateInitialViewController() as? NCCreateFormUploadConflict else { return }
                 conflictViewController.textLabelDetailNewFile = NSLocalizedString("_now_", comment: "")
@@ -287,7 +287,7 @@ import NCCommunication
                 
             } else {
                                 
-                let fileNamePath = CCUtility.returnFileNamePath(fromFileName: String(describing: fileNameForm), serverUrl: serverUrl, activeUrl: appDelegate.activeUrl)!
+                let fileNamePath = CCUtility.returnFileNamePath(fromFileName: String(describing: fileNameForm), serverUrl: serverUrl, urlBase: appDelegate.urlBase, account: appDelegate.account)!
                 createDocument(fileNamePath: fileNamePath, fileName: String(describing: fileNameForm))
             }
         }
@@ -304,7 +304,7 @@ import NCCommunication
         } else {
             
             let fileName = metadatas![0].fileName
-            let fileNamePath = CCUtility.returnFileNamePath(fromFileName: fileName, serverUrl: serverUrl, activeUrl: appDelegate.activeUrl)!
+            let fileNamePath = CCUtility.returnFileNamePath(fromFileName: fileName, serverUrl: serverUrl, urlBase: appDelegate.urlBase, account: appDelegate.account)!
             
             createDocument(fileNamePath: fileNamePath, fileName: fileName)
         }
@@ -317,20 +317,26 @@ import NCCommunication
             var customUserAgent: String?
             
             if self.editorId == k_editor_onlyoffice {
-                customUserAgent = NCUtility.sharedInstance.getCustomUserAgentOnlyOffice()
+                customUserAgent = NCUtility.shared.getCustomUserAgentOnlyOffice()
             }
             
             NCCommunication.shared.NCTextCreateFile(fileNamePath: fileNamePath, editorId: editorId, creatorId: creatorId, templateId: templateIdentifier, customUserAgent: customUserAgent) { (account, url, errorCode, errorMessage) in
                 
-                if errorCode == 0 && account == self.appDelegate.activeAccount {
+                if errorCode == 0 && account == self.appDelegate.account {
                     
                     if url != nil && url!.count > 0 {
                         let result = NCCommunicationCommon.shared.getInternalContenType(fileName: fileName, contentType: "", directory: false)
                         
                         self.dismiss(animated: true, completion: {
-                            let metadata = NCManageDatabase.sharedInstance.createMetadata(account: self.appDelegate.activeAccount, fileName: fileName, ocId: CCUtility.createRandomString(12), serverUrl: self.serverUrl, url: url ?? "", contentType: result.contentType)
-                            self.appDelegate.activeMain.readFileReloadFolder()
-                            self.appDelegate.activeMain.shouldPerformSegue(metadata, selector: "")
+                            let metadata = NCManageDatabase.sharedInstance.createMetadata(account: self.appDelegate.account, fileName: fileName, ocId: CCUtility.createRandomString(12), serverUrl: self.serverUrl, urlBase: self.appDelegate.urlBase, url: url ?? "", contentType: result.contentType, livePhoto: false)
+                            
+                            if self.appDelegate.activeViewController is CCMain {
+                                (self.appDelegate.activeViewController as! CCMain).shouldPerformSegue(metadata, selector: "")
+                            } else if self.appDelegate.activeViewController is NCFavorite {
+                                (self.appDelegate.activeViewController as! NCFavorite).segue(metadata: metadata)
+                            } else if self.appDelegate.activeViewController is NCOffline {
+                                (self.appDelegate.activeViewController as! NCOffline).segue(metadata: metadata)
+                            }
                         })
                     }
                     
@@ -340,27 +346,32 @@ import NCCommunication
                    print("[LOG] It has been changed user during networking process, error.")
                 }
             }
-            
         }
         
         if self.editorId == k_editor_collabora {
             
             NCCommunication.shared.createRichdocuments(path: fileNamePath, templateId: templateIdentifier) { (account, url, errorCode, errorDescription) in
                 
-                if errorCode == 0 && account == self.appDelegate.activeAccount && url != nil {
+                if errorCode == 0 && account == self.appDelegate.account && url != nil {
                    
                     self.dismiss(animated: true, completion: {
                     
-                    let metadata = NCManageDatabase.sharedInstance.createMetadata(account: self.appDelegate.activeAccount, fileName: (fileName as NSString).deletingPathExtension + "." + self.fileNameExtension, ocId: CCUtility.createRandomString(12), serverUrl: self.serverUrl, url: url!, contentType: "")
+                        let metadata = NCManageDatabase.sharedInstance.createMetadata(account: self.appDelegate.account, fileName: (fileName as NSString).deletingPathExtension + "." + self.fileNameExtension, ocId: CCUtility.createRandomString(12), serverUrl: self.serverUrl, urlBase: self.appDelegate.urlBase, url: url!, contentType: "", livePhoto: false)
                     
-                       self.appDelegate.activeMain.shouldPerformSegue(metadata, selector: "")
+                        if self.appDelegate.activeViewController is CCMain {
+                            (self.appDelegate.activeViewController as! CCMain).shouldPerformSegue(metadata, selector: "")
+                        } else if self.appDelegate.activeViewController is NCFavorite {
+                            (self.appDelegate.activeViewController as! NCFavorite).segue(metadata: metadata)
+                        } else if self.appDelegate.activeViewController is NCOffline {
+                            (self.appDelegate.activeViewController as! NCOffline).segue(metadata: metadata)
+                        }
                    })
                    
                     
                 } else if errorCode != 0 {
                     NCContentPresenter.shared.messageNotification("_error_", description: errorDescription, delay: TimeInterval(k_dismissAfterSecond), type: NCContentPresenter.messageType.error, errorCode: errorCode)
                 } else {
-                   print("[LOG] It has been changed user during networking process, error.")
+                    print("[LOG] It has been changed user during networking process, error.")
                 }
             }
         }
@@ -384,14 +395,14 @@ import NCCommunication
             var customUserAgent: String?
                        
             if self.editorId == k_editor_onlyoffice {
-                customUserAgent = NCUtility.sharedInstance.getCustomUserAgentOnlyOffice()
+                customUserAgent = NCUtility.shared.getCustomUserAgentOnlyOffice()
             }
             
             NCCommunication.shared.NCTextGetListOfTemplates(customUserAgent: customUserAgent) { (account, templates, errorCode, errorMessage) in
                 
                 self.indicator.stopAnimating()
                 
-                if errorCode == 0 && account == self.appDelegate.activeAccount {
+                if errorCode == 0 && account == self.appDelegate.account {
                     
                     for template in templates {
                         
@@ -453,7 +464,7 @@ import NCCommunication
                 
                 self.indicator.stopAnimating()
 
-                if errorCode == 0 && account == self.appDelegate.activeAccount {
+                if errorCode == 0 && account == self.appDelegate.account {
                     
                     for template in templates! {
                         
@@ -496,7 +507,7 @@ import NCCommunication
             
         }) { (account, etag, date, lenght, error, errorCode, errorDescription) in
             
-            if errorCode == 0 && account == self.appDelegate.activeAccount {
+            if errorCode == 0 && account == self.appDelegate.account {
                 self.collectionView.reloadItems(at: [indexPath])
             } else if errorCode != 0 {
                 print("\(errorCode)")

@@ -45,7 +45,7 @@ class NCCreateFormUploadVoiceNote: XLFormViewController, NCSelectDelegate, AVAud
     
     public func setup(serverUrl: String, fileNamePath: String, fileName: String) {
     
-        if serverUrl == CCUtility.getHomeServerUrlActiveUrl(appDelegate.activeUrl) {
+        if serverUrl == NCUtility.shared.getHomeServer(urlBase: appDelegate.urlBase, account: appDelegate.account) {
             titleServerUrl = "/"
         } else {
             titleServerUrl = (serverUrl as NSString).lastPathComponent
@@ -87,8 +87,8 @@ class NCCreateFormUploadVoiceNote: XLFormViewController, NCSelectDelegate, AVAud
         progressView.progressTintColor = .green
         progressView.trackTintColor = UIColor(red: 247.0/255.0, green: 247.0/255.0, blue: 247.0/255.0, alpha: 1.0)
         
-        // Theming view
         NotificationCenter.default.addObserver(self, selector: #selector(changeTheming), name: NSNotification.Name(rawValue: k_notificationCenter_changeTheming), object: nil)
+
         changeTheming()
     }
     
@@ -195,13 +195,13 @@ class NCCreateFormUploadVoiceNote: XLFormViewController, NCSelectDelegate, AVAud
     
     // MARK: - Action
     
-    func dismissSelect(serverUrl: String?, metadata: tableMetadata?, type: String, buttonType: String, overwrite: Bool) {
+    func dismissSelect(serverUrl: String?, metadata: tableMetadata?, type: String, array: [Any], buttonType: String, overwrite: Bool) {
         
         if serverUrl != nil {
             
             self.serverUrl = serverUrl!
             
-            if serverUrl == CCUtility.getHomeServerUrlActiveUrl(appDelegate.activeUrl) {
+            if serverUrl == NCUtility.shared.getHomeServer(urlBase: appDelegate.urlBase, account: appDelegate.account) {
                 self.titleServerUrl = "/"
             } else {
                 self.titleServerUrl = (serverUrl! as NSString).lastPathComponent
@@ -229,13 +229,13 @@ class NCCreateFormUploadVoiceNote: XLFormViewController, NCSelectDelegate, AVAud
             fileNameSave = (name as! NSString).deletingPathExtension + ".m4a"
         }
         
-        let metadataForUpload = NCManageDatabase.sharedInstance.createMetadata(account: self.appDelegate.activeAccount, fileName: fileNameSave, ocId: UUID().uuidString, serverUrl: self.serverUrl, url: "", contentType: "")
+        let metadataForUpload = NCManageDatabase.sharedInstance.createMetadata(account: self.appDelegate.account, fileName: fileNameSave, ocId: UUID().uuidString, serverUrl: self.serverUrl, urlBase: self.appDelegate.urlBase ,url: "", contentType: "", livePhoto: false)
         
-        metadataForUpload.session = NCCommunicationCommon.shared.sessionIdentifierBackground
+        metadataForUpload.session = NCNetworking.shared.sessionIdentifierBackground
         metadataForUpload.sessionSelector = selectorUploadFile
         metadataForUpload.status = Int(k_metadataStatusWaitUpload)
         
-        if NCUtility.sharedInstance.getMetadataConflict(account: appDelegate.activeAccount, serverUrl: serverUrl, fileName: fileNameSave) != nil {
+        if NCUtility.shared.getMetadataConflict(account: appDelegate.account, serverUrl: serverUrl, fileName: fileNameSave) != nil {
                         
             guard let conflictViewController = UIStoryboard(name: "NCCreateFormUploadConflict", bundle: nil).instantiateInitialViewController() as? NCCreateFormUploadConflict else { return }
             conflictViewController.textLabelDetailNewFile = NSLocalizedString("_now_", comment: "")
@@ -290,7 +290,7 @@ class NCCreateFormUploadVoiceNote: XLFormViewController, NCSelectDelegate, AVAud
         viewController.hideButtonCreateFolder = false
         viewController.includeDirectoryE2EEncryption = true
         viewController.includeImages = false
-        viewController.layoutViewSelect = k_layout_view_move
+        viewController.keyLayout = k_layout_view_move
         viewController.selectFile = false
         viewController.titleButtonDone = NSLocalizedString("_select_", comment: "")
         viewController.type = ""
@@ -302,8 +302,8 @@ class NCCreateFormUploadVoiceNote: XLFormViewController, NCSelectDelegate, AVAud
     //MARK: Player - Timer
 
     func updateTimerUI() {
-        labelTimer.text = NCUtility.sharedInstance.formatSecondsToString(counterSecondPlayer)
-        labelDuration.text = NCUtility.sharedInstance.formatSecondsToString(durationPlayer)
+        labelTimer.text = NCUtility.shared.formatSecondsToString(counterSecondPlayer)
+        labelDuration.text = NCUtility.shared.formatSecondsToString(durationPlayer)
         progressView.progress = Float(counterSecondPlayer / durationPlayer)
     }
     
@@ -333,7 +333,7 @@ class NCCreateFormUploadVoiceNote: XLFormViewController, NCSelectDelegate, AVAud
             
             timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(updateTimer), userInfo: nil, repeats: true)
             
-            buttonPlayStop.setImage(CCGraphics.changeThemingColorImage(UIImage(named: "audioStop")!, width: 200, height: 200, color: NCBrandColor.sharedInstance.icon), for: .normal)
+            buttonPlayStop.setImage(CCGraphics.changeThemingColorImage(UIImage(named: "stop")!, width: 200, height: 200, color: NCBrandColor.sharedInstance.icon), for: .normal)
         }
     }
     

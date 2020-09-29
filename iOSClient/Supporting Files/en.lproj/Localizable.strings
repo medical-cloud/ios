@@ -24,6 +24,7 @@
 
 "_cancel_"                  = "Cancel";
 "_upload_file_"             = "Upload file";
+"_accessibility_add_upload_" = "Add and upload";
 "_download_file_"           = "Download file";
 "_loading_"                 = "Loading";
 "_loading_with_points_"     = "Loading…";
@@ -69,7 +70,7 @@
 "_video_"                   = "Video";
 "_overwrite_"               = "Overwrite";
 "_transfers_in_queue_"      = "Tranfers in progress, please wait…";
-"_too_errors_automatic_all_"= "Too many errors, go to \"Control Center\" to verify the problem";
+"_too_errors_upload_"       = "Too many errors, please verify the problem";
 "_create_folder_"           = "Create folder";
 "_create_folder_on_"        = "Create folder on";
 "_close_"                   = "Close";
@@ -101,6 +102,7 @@
 "_denied_album_"            = "This app does not have access to \"Photos\", you can enable access in Privacy Settings";
 "_denied_camera_"           = "This app does not have access to \"Camera\", you can enable access in Privacy Settings";
 "_start_"                   = "Start";
+"_force_start_"             = "Force the start";
 "_purchase_"                = "Purchase";
 "_account_not_available_"   = "The account %@ of %@ does not exist, please add it to be able to read the file %@";
 "_error_parameter_schema_"  = "Wrong parameters, impossible to continue";
@@ -134,6 +136,8 @@
 "_move_or_copy_"            = "Move or copy";
 "_copy_"                    = "Copy";
 "_now_"                     = "Now";
+"_wait_"                    = "Please wait...";
+"_attention_"               = "Attention";
 
 // App
 
@@ -149,6 +153,7 @@
 "_no_reuploadfile_"         = "Could not find nor resend file. Delete the upload and reload the file to upload it.";
 "_file_already_exists_"     = "Unable to complete the operation, a file with the same name exists";
 "_read_file_error_"         = "Could not read the file";
+"_write_file_error_"        = "Could not write the file";
 
 // More
 
@@ -211,7 +216,8 @@
 "_help_"                        = "Help";
 "_change_simply_passcode_"      = "Change password type";
 "_quota_"                       = "Quota";
-"_available_"                   = "available";
+"_available_"                   = "Available";
+"_not_available_"               = "Not available";
 "_accounts_"                    = "Accounts";
 "_information_"                 = "Information";
 "_personal_information_"        = "Personal info";
@@ -289,6 +295,13 @@
 "_crashservice_alert_"          = "This option requires a restart of the app to take effect";
 "_upload_mov_livephoto_"        = "Live Photo";
 "_upload_mov_livephoto_footer_" = "\"Live Photo\" will save, when possible, the photo selected in \"Live Photo\" format";
+"_view_capabilities_"           = "View the capabilities";
+"_capabilities_"                = "Capabilities";
+"_no_capabilities_found_"       = "Capabilities not found";
+"_diagnostics_"                 = "Diagnostics";
+"_view_log_"                    = "View Log file";
+"_clear_log_"                   = "Clear Log file";
+"_level_log_"                   = "Set Log level (disabled, standard, maximum)";
 
 // Login
 
@@ -333,7 +346,7 @@
 "_access_photo_location_not_enabled_"       = "Access to Photos and Location not enabled";
 "_access_photo_location_not_enabled_msg_"   = "Please go to \"Settings\" and turn on \"Photo Access\" and \"Location Services\"";
 "_tutorial_photo_view_"                     = "No photos or videos uploaded yet";
-"_create_full_upload_"                      = "Creating archive… May take a long time, please wait.";
+"_create_full_upload_"                      = "Creating archive… May take a long time. During this process, keep the application active during the transfer as well.";
 "_error_createsubfolders_upload_"           = "Error creating subfolders";
 "_activate_autoupload_"                     = "Enable auto upload";
 "_remove_photo_CameraRoll_"                 = "Remove from camera roll";
@@ -425,7 +438,7 @@
 "_tite_footer_download_wwan_"   = "  Wi-Fi network required, %lu %@ to download";
 "_tite_footer_download_"        = "%lu %@ to download";
 "_limited_dimension_"           = "Maximum size reached";
-"_save_selected_files_"         = "Save images and videos to photo album";
+"_save_selected_files_"         = "Save to photo gallery";
 "_file_not_saved_cameraroll_"   = "Error: File not saved in photo album";
 "_file_saved_cameraroll_"       = "File saved in photo album";
 "_directory_on_top_yes_"        = "✓ Folders on top";
@@ -532,6 +545,7 @@
 "_share_can_change_"            = "Can change";
 "_share_can_delete_"            = "Can delete";
 "_share_unshare_"               = "Unshare";
+"_share_internal_link_"         = "Share internal link";
 
 // Share Permission
 
@@ -665,7 +679,8 @@
 "_e2e_error_create_encrypted_"      = "Could not create encrypted file";
 "_e2e_error_update_metadata_"       = "Update metadata error";
 "_e2e_error_store_metadata_"        = "Could not save metadata";
-"_e2e_error_send_metadata_"         = "Could not send metadata";"_e2e_error_delete_metadata_"       = "Could not delete metadata";
+"_e2e_error_send_metadata_"         = "Could not send metadata";
+"_e2e_error_delete_metadata_"       = "Could not delete metadata";
 "_e2e_error_get_metadata_"          = "Could not fetch metadata";
 "_e2e_error_not_enabled_"           = "Serious internal error. End-to-end encryption not enabled";
 "_e2e_error_record_not_found_"      = "Serious internal error. Records not found";
@@ -674,6 +689,7 @@
 "_e2e_error_delete_mark_folder_"    = "Decrypt marked folder";
 "_e2e_error_mark_folder_"           = "Encrypt folder";
 "_e2e_error_directory_not_empty_"   = "The directory is not empty";
+"_e2e_error_not_move_"              = "It is not possible move files to encrypted directory";
 
 // Scan Document
 
@@ -782,13 +798,16 @@
 "_not_possible_download_"               = "It is not possible to download the file";
 "_not_possible_upload_"                 = "It is not possible to upload the file";
 "_method_not_allowed_"                  = "The requested method is not supported";
-"_invalid_url_"                         = "Invalid server url";
+"_invalid_url_"                         = "Invalid server URL";
 "_invalid_literal_"                     = "Invalid search string";
 "_invalid_date_format_"                 = "Invalid date format";
 "_invalid_data_format_"                 = "Invalid data format";
 "_error_decode_xml_"                    = "Invalid response, error decode XML";
 "_internal_generic_error_"              = "internal error";
 "_editor_unknown_"                      = "Failed to open file: Editor is unknown";
+"_err_asset_not_found_locally_"         = "Error: Photo/video not found locally, removed from upload";
+"_err_asset_not_found_"                 = "Error: Photo/video not found, removed from upload";
+"_err_e2ee_app_version_"                = "Error: The version of app End-to-End encryption is not compatible, please update your server";
 
 // QRCode
 

@@ -28,12 +28,24 @@ import NCCommunication
 import PDFKit
 
 class NCUtility: NSObject {
-    @objc static let sharedInstance: NCUtility = {
+    @objc static let shared: NCUtility = {
         let instance = NCUtility()
         return instance
     }()
     
     let activityIndicator = UIActivityIndicatorView(style: .whiteLarge)
+    
+    @objc func getWebDAV(account: String) -> String {
+        return NCManageDatabase.sharedInstance.getCapabilitiesServerString(account: account, elements: NCElementsJSON.shared.capabilitiesWebDavRoot) ?? "remote.php/webdav"
+    }
+    
+    @objc func getDAV() -> String {
+        return "remote.php/dav"
+    }
+    
+    @objc func getHomeServer(urlBase: String, account: String) -> String {
+        return urlBase + "/" + self.getWebDAV(account: account)
+    }
     
     @objc func createFileName(_ fileName: String, serverUrl: String, account: String) -> String {
         
@@ -135,31 +147,89 @@ class NCUtility: NSObject {
         return blurEffectView
     }
     
-    func setLayoutForView(key: String, layout: String, sort: String, ascending: Bool, groupBy: String, directoryOnTop: Bool) {
+    func setLayoutForView(key: String, layout: String, sort: String, ascending: Bool, groupBy: String, directoryOnTop: Bool, titleButton: String, itemForLine: Int) {
         
-        let string =  layout + "|" + sort + "|" + "\(ascending)" + "|" + groupBy + "|" + "\(directoryOnTop)"
+        let string =  layout + "|" + sort + "|" + "\(ascending)" + "|" + groupBy + "|" + "\(directoryOnTop)" + "|" + titleButton + "|" + "\(itemForLine)"
         
         UICKeyChainStore.setString(string, forKey: key, service: k_serviceShareKeyChain)
     }
     
-    func getLayoutForView(key: String) -> (String, String, Bool, String, Bool) {
+    func setLayoutForView(key: String, layout: String) {
+        
+        var sort: String
+        var ascending: Bool
+        var groupBy: String
+        var directoryOnTop: Bool
+        var titleButton: String
+        var itemForLine: Int
+
+        (_, sort, ascending, groupBy, directoryOnTop, titleButton, itemForLine) = NCUtility.shared.getLayoutForView(key: k_layout_view_favorite)
+
+        setLayoutForView(key: key, layout: layout, sort: sort, ascending: ascending, groupBy: groupBy, directoryOnTop: directoryOnTop, titleButton: titleButton, itemForLine: itemForLine)
+    }
+    
+    @objc func getLayoutForView(key: String) -> (String) {
+        
+        var layout: String
+        (layout, _, _, _, _, _, _) = NCUtility.shared.getLayoutForView(key: key)
+        return layout
+    }
+    
+    @objc func getSortedForView(key: String) -> (String) {
+        
+        var sort: String
+        (_, sort, _, _, _, _, _) = NCUtility.shared.getLayoutForView(key: key)
+        return sort
+    }
+    
+    @objc func getAscendingForView(key: String) -> (Bool) {
+        
+        var ascending: Bool
+        (_, _, ascending, _, _, _, _) = NCUtility.shared.getLayoutForView(key: key)
+        return ascending
+    }
+    
+    @objc func getGroupByForView(key: String) -> (String) {
+        
+        var groupBy: String
+        (_, _, _, groupBy, _, _, _) = NCUtility.shared.getLayoutForView(key: key)
+        return groupBy
+    }
+    
+    @objc func getDirectoryOnTopForView(key: String) -> (Bool) {
+        
+        var directoryOnTop: Bool
+        (_, _, _, _, directoryOnTop, _, _) = NCUtility.shared.getLayoutForView(key: key)
+        return directoryOnTop
+    }
+    
+    @objc func getTitleButtonForView(key: String) -> (String) {
+        
+        var titleButton: String
+        (_, _, _, _, _, titleButton, _) = NCUtility.shared.getLayoutForView(key: key)
+        return titleButton
+    }
+    
+    func getLayoutForView(key: String) -> (layout: String, sort: String, ascending: Bool, groupBy: String, directoryOnTop: Bool, titleButton: String, itemForLine: Int) {
         
         guard let string = UICKeyChainStore.string(forKey: key, service: k_serviceShareKeyChain) else {
-            return (k_layout_list, "fileName", true, "none", true)
+            setLayoutForView(key: key, layout: k_layout_list, sort: "fileName", ascending: true, groupBy: "none", directoryOnTop: true, titleButton: "_sorted_by_name_a_z_", itemForLine: 3)
+            return (k_layout_list, "fileName", true, "none", true, "_sorted_by_name_a_z_", 3)
         }
 
         let array = string.components(separatedBy: "|")
-        if array.count == 5 {
+        if array.count == 7 {
             let sort = NSString(string: array[2])
             let directoryOnTop = NSString(string: array[4])
+            let itemForLine = NSString(string: array[6])
 
-            return (array[0], array[1], sort.boolValue, array[3], directoryOnTop.boolValue)
+            return (array[0], array[1], sort.boolValue, array[3], directoryOnTop.boolValue, array[5], Int(itemForLine.intValue))
         }
         
-        return (k_layout_list, "fileName", true, "none", true)
+        setLayoutForView(key: key, layout: k_layout_list, sort: "fileName", ascending: true, groupBy: "none", directoryOnTop: true, titleButton: "_sorted_by_name_a_z_", itemForLine: 3)
+        return (k_layout_list, "fileName", true, "none", true, "_sorted_by_name_a_z_", 3)
     }
-    
-    
+        
     func convertSVGtoPNGWriteToUserData(svgUrlString: String, fileName: String?, width: CGFloat?, rewrite: Bool, account: String, closure: @escaping (String?) -> ()) {
         
         var fileNamePNG = ""
@@ -305,31 +375,7 @@ class NCUtility: NSObject {
             }
         }
     }
-    
-    @objc func bestFittingFont(for text: String, in bounds: CGRect, fontDescriptor: UIFontDescriptor) -> UIFont {
         
-        let constrainingDimension = min(bounds.width, bounds.height)
-        let properBounds = CGRect(origin: .zero, size: bounds.size)
-        var attributes: [NSAttributedString.Key: Any] = [:]
-        
-        let infiniteBounds = CGSize(width: CGFloat.infinity, height: CGFloat.infinity)
-        var bestFontSize: CGFloat = constrainingDimension
-        
-        for fontSize in stride(from: bestFontSize, through: 0, by: -1) {
-            let newFont = UIFont(descriptor: fontDescriptor, size: fontSize)
-            attributes[.font] = newFont
-            
-            let currentFrame = text.boundingRect(with: infiniteBounds, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: attributes, context: nil)
-            
-            if properBounds.contains(currentFrame) {
-                bestFontSize = fontSize
-                break
-            }
-        }
-        
-        return UIFont(descriptor: fontDescriptor, size: bestFontSize)
-    }
-    
     @objc func isRichDocument(_ metadata: tableMetadata) -> Bool {
         
         guard let mimeType = CCUtility.getMimeType(metadata.fileNameView) else {
@@ -532,13 +578,22 @@ class NCUtility: NSObject {
     }
     
     // Delete Asset on Photos album
-    @objc func deleteAssetLocalIdentifiers(account: String, sessionSelector: String) {
+    @objc func deleteAssetLocalIdentifiers(account: String, sessionSelector: String, completition: @escaping () -> ()) {
         
-        if UIApplication.shared.applicationState != .active { return }
+        if UIApplication.shared.applicationState != .active {
+            completition()
+            return
+        }
         let metadatasSessionUpload = NCManageDatabase.sharedInstance.getMetadatas(predicate: NSPredicate(format: "account == %@ AND session CONTAINS[cd] %@", account, "upload"))
-        if metadatasSessionUpload?.count ?? 0 > 0 { return }
+        if metadatasSessionUpload.count > 0 {
+            completition()
+            return
+        }
         let localIdentifiers = NCManageDatabase.sharedInstance.getAssetLocalIdentifiersUploaded(account: account, sessionSelector: sessionSelector)
-        if localIdentifiers.count == 0 { return }
+        if localIdentifiers.count == 0 {
+            completition()
+            return
+        }
         let assets = PHAsset.fetchAssets(withLocalIdentifiers: localIdentifiers, options: nil)
         
         PHPhotoLibrary.shared().performChanges({
@@ -546,8 +601,19 @@ class NCUtility: NSObject {
         }, completionHandler: { success, error in
             DispatchQueue.main.async {
                 NCManageDatabase.sharedInstance.clearAssetLocalIdentifiers(localIdentifiers, account: account)
+                completition()
             }
         })
+    }
+    
+    @objc func ocIdToFileId(ocId: String?) -> String? {
+    
+        guard let ocId = ocId else { return nil }
+        
+        let items = ocId.components(separatedBy: "oc")
+        if items.count < 2 { return nil }
+        guard let intFileId = Int(items[0]) else { return nil }
+        return String(intFileId)
     }
 }
 

@@ -55,7 +55,7 @@ class NCViewerVideo: NSObject {
             self.videoURL = URL(string: stringURL)
             videoURLProxy = KTVHTTPCache.proxyURL(withOriginalURL: self.videoURL)
             
-            guard let authData = (appDelegate.activeUser + ":" + appDelegate.activePassword).data(using: .utf8) else {
+            guard let authData = (appDelegate.user + ":" + appDelegate.password).data(using: .utf8) else {
                 return
             }
             
@@ -104,7 +104,7 @@ class NCViewerVideo: NSObject {
                 }
                 
                 CCUtility.copyFile(atPath: url.path, toPath: CCUtility.getDirectoryProviderStorageOcId(self.metadata.ocId, fileNameView: self.metadata.fileNameView))
-                _ = NCManageDatabase.sharedInstance.addLocalFile(metadata: self.metadata)
+                NCManageDatabase.sharedInstance.addLocalFile(metadata: self.metadata)
                 KTVHTTPCache.cacheDelete(with: self.videoURL)
                 
                 NotificationCenter.default.postOnMainThread(name: k_notificationCenter_reloadDataSource, userInfo: ["ocId":self.metadata.ocId, "serverUrl":self.metadata.serverUrl])

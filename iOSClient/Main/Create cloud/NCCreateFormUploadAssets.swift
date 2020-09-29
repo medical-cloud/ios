@@ -22,6 +22,7 @@
 //
 
 import Foundation
+import Queuer
 
 @objc protocol createFormUploadAssetsDelegate {
     
@@ -32,8 +33,7 @@ class NCCreateFormUploadAssets: XLFormViewController, NCSelectDelegate {
     
     var serverUrl: String = ""
     var titleServerUrl: String?
-    var assets = NSMutableArray()
-    var urls = NSMutableArray()
+    var assets: [PHAsset] = []
     var cryptated: Bool = false
     var session: String = ""
     weak var delegate: createFormUploadAssetsDelegate?
@@ -42,15 +42,15 @@ class NCCreateFormUploadAssets: XLFormViewController, NCSelectDelegate {
     let targetSizeImagePreview = CGSize(width:100, height: 100)
     let appDelegate = UIApplication.shared.delegate as! AppDelegate
     
-    @objc convenience init(serverUrl : String, assets : NSMutableArray, urls: NSMutableArray, cryptated : Bool, session : String, delegate: createFormUploadAssetsDelegate) {
+    @objc convenience init(serverUrl: String, assets: [PHAsset], cryptated: Bool, session: String, delegate: createFormUploadAssetsDelegate?) {
         
         self.init()
         
-        if serverUrl == CCUtility.getHomeServerUrlActiveUrl(appDelegate.activeUrl) {
+        if serverUrl == NCUtility.shared.getHomeServer(urlBase: appDelegate.urlBase, account: appDelegate.account) {
             titleServerUrl = "/"
         } else {
-            if let tableDirectory = NCManageDatabase.sharedInstance.getTableDirectory(predicate: NSPredicate(format: "account == %@ AND serverUrl == %@", appDelegate.activeAccount, serverUrl)) {
-                if let metadata = NCManageDatabase.sharedInstance.getMetadata(predicate: NSPredicate(format: "ocId == %@", tableDirectory.ocId)) {
+            if let tableDirectory = NCManageDatabase.sharedInstance.getTableDirectory(predicate: NSPredicate(format: "account == %@ AND serverUrl == %@", appDelegate.account, serverUrl)) {
+                if let metadata = NCManageDatabase.sharedInstance.getMetadataFromOcId(tableDirectory.ocId) {
                     titleServerUrl = metadata.fileNameView
                 } else { titleServerUrl = (serverUrl as NSString).lastPathComponent }
             } else { titleServerUrl = (serverUrl as NSString).lastPathComponent }
@@ -58,7 +58,6 @@ class NCCreateFormUploadAssets: XLFormViewController, NCSelectDelegate {
         
         self.serverUrl = serverUrl
         self.assets = assets
-        self.urls = urls
         self.cryptated = cryptated
         self.session = session
         self.delegate = delegate
@@ -81,14 +80,14 @@ class NCCreateFormUploadAssets: XLFormViewController, NCSelectDelegate {
         
         self.tableView.separatorStyle = UITableViewCell.SeparatorStyle.none
         
-        if assets.count == 1 && (assets[0] as! PHAsset).mediaType == PHAssetMediaType.image {
-            PHImageManager.default().requestImage(for: assets[0] as! PHAsset, targetSize: targetSizeImagePreview, contentMode: PHImageContentMode.aspectFill, options: requestOptions, resultHandler: { (image, info) in
+        if assets.count == 1 && assets[0].mediaType == PHAssetMediaType.image {
+            PHImageManager.default().requestImage(for: assets[0], targetSize: targetSizeImagePreview, contentMode: PHImageContentMode.aspectFill, options: requestOptions, resultHandler: { (image, info) in
                 self.imagePreview = image
             })
         }
         
-        // Theming view
         NotificationCenter.default.addObserver(self, selector: #selector(changeTheming), name: NSNotification.Name(rawValue: k_notificationCenter_changeTheming), object: nil)
+
         changeTheming()
     }
     
@@ -277,7 +276,7 @@ class NCCreateFormUploadAssets: XLFormViewController, NCSelectDelegate {
                     
                     self.reloadFormRow(formRow)
                     
-                    NCContentPresenter.shared.messageNotification("_info_", description: "_forbidden_characters_", delay: TimeInterval(k_dismissAfterSecond), type: NCContentPresenter.messageType.info, errorCode: 0)
+                    NCContentPresenter.shared.messageNotification("_info_", description: "_forbidden_characters_", delay: TimeInterval(k_dismissAfterSecond), type: NCContentPresenter.messageType.info, errorCode: Int(k_CCErrorCharactersForbidden), forced: true)
                 }
             }
             
@@ -302,17 +301,18 @@ class NCCreateFormUploadAssets: XLFormViewController, NCSelectDelegate {
     
     // MARK: - Action
     
-    func dismissSelect(serverUrl: String?, metadata: tableMetadata?, type: String, buttonType: String, overwrite: Bool) {
+    func dismissSelect(serverUrl: String?, metadata: tableMetadata?, type: String, array: [Any], buttonType: String, overwrite: Bool) {
         
         if serverUrl != nil {
             
             self.serverUrl = serverUrl!
             
-            if serverUrl == CCUtility.getHomeServerUrlActiveUrl(appDelegate.activeUrl) {
+            if serverUrl == NCUtility.shared.getHomeServer(urlBase: appDelegate.urlBase, account: appDelegate.account) {
                 self.titleServerUrl = "/"
             } else {
-                if let tableDirectory = NCManageDatabase.sharedInstance.getTableDirectory(predicate: NSPredicate(format: "account == %@ AND serverUrl == %@", appDelegate.activeAccount, self.serverUrl)) {
-                    if let metadata = NCManageDatabase.sharedInstance.getMetadata(predicate: NSPredicate(format: "ocId == %@", tableDirectory.ocId)) {
+                if let tableDirectory = NCManageDatabase.sharedInstance.getTableDirectory(predicate: NSPredicate(format: "account == %@ AND serverUrl == %@", appDelegate.account
+                    , self.serverUrl)) {
+                    if let metadata = NCManageDatabase.sharedInstance.getMetadataFromOcId(tableDirectory.ocId) {
                         titleServerUrl = metadata.fileNameView
                     } else { titleServerUrl = (self.serverUrl as NSString).lastPathComponent }
                 } else { titleServerUrl = (self.serverUrl as NSString).lastPathComponent }                
@@ -325,6 +325,7 @@ class NCCreateFormUploadAssets: XLFormViewController, NCSelectDelegate {
         }
     }
     
+    /*
     @objc func save() {
         
         self.dismiss(animated: true, completion: {
@@ -335,12 +336,138 @@ class NCCreateFormUploadAssets: XLFormViewController, NCSelectDelegate {
             
             if (useFolderPhotoRow.value! as AnyObject).boolValue == true {
                 
-                self.serverUrl = NCManageDatabase.sharedInstance.getAccountAutoUploadPath(self.appDelegate.activeUrl)
+                self.serverUrl = NCManageDatabase.sharedInstance.getAccountAutoUploadPath(urlBase: self.appDelegate.urlBase, account: self.appDelegate.account)
                 useSubFolder = (useSubFolderRow.value! as AnyObject).boolValue
             }
             
-            self.appDelegate.activeMain.uploadFileAsset(self.assets, urls: self.urls, serverUrl: self.serverUrl, useSubFolder: useSubFolder, session: self.session)
+            self.appDelegate.activeMain.uploadFileAsset(self.assets, serverUrl: self.serverUrl, useSubFolder: useSubFolder, session: self.session)
         })
+    }
+    */
+    
+    @objc func save() {
+         
+        DispatchQueue.global().async {
+        
+            let useFolderPhotoRow: XLFormRowDescriptor  = self.form.formRow(withTag: "useFolderAutoUpload")!
+            let useSubFolderRow: XLFormRowDescriptor  = self.form.formRow(withTag: "useSubFolder")!
+            var useSubFolder: Bool = false
+            var metadatasMOV: [tableMetadata] = []
+            var metadatasNOConflict: [tableMetadata] = []
+            var metadatasUploadInConflict: [tableMetadata] = []
+
+            if (useFolderPhotoRow.value! as AnyObject).boolValue == true {
+                self.serverUrl = NCManageDatabase.sharedInstance.getAccountAutoUploadPath(urlBase: self.appDelegate.urlBase, account: self.appDelegate.account)
+                useSubFolder = (useSubFolderRow.value! as AnyObject).boolValue
+            }
+            
+            let autoUploadPath = NCManageDatabase.sharedInstance.getAccountAutoUploadPath(urlBase: self.appDelegate.urlBase, account: self.appDelegate.account)
+            if autoUploadPath == self.serverUrl {
+                if NCNetworking.shared.createFolder(assets: self.assets, selector: selectorUploadFile, useSubFolder: useSubFolder, account: self.appDelegate.account, urlBase: self.appDelegate.urlBase) {
+                    NCContentPresenter.shared.messageNotification("_error_", description: "_error_createsubfolders_upload_", delay: TimeInterval(k_dismissAfterSecond), type: NCContentPresenter.messageType.error, errorCode: Int(k_CCErrorInternalError), forced: true)
+                    return
+                }
+            }
+
+            for asset in self.assets {
+                    
+                var serverUrl = self.serverUrl
+                var livePhoto: Bool = false
+                let fileName = CCUtility.createFileName(asset.value(forKey: "filename") as? String, fileDate: asset.creationDate, fileType: asset.mediaType, keyFileName: k_keyFileNameMask, keyFileNameType: k_keyFileNameType, keyFileNameOriginal: k_keyFileNameOriginal)!
+                let assetDate = asset.creationDate ?? Date()
+                let dateFormatter = DateFormatter()
+                
+                // Detect LivePhoto Upload
+                if (asset.mediaSubtypes == PHAssetMediaSubtype.photoLive || asset.mediaSubtypes.rawValue == PHAssetMediaSubtype.photoLive.rawValue + PHAssetMediaSubtype.photoHDR.rawValue) && CCUtility.getLivePhoto() {
+                    livePhoto = true
+                } 
+                
+                // Create serverUrl if use sub folder
+                if useSubFolder {
+                    
+                    dateFormatter.dateFormat = "yyyy"
+                    let yearString = dateFormatter.string(from: assetDate)
+                   
+                    dateFormatter.dateFormat = "MM"
+                    let monthString = dateFormatter.string(from: assetDate)
+                    
+                    serverUrl = autoUploadPath + "/" + yearString + "/" + monthString
+                }
+                
+                // Check if is in upload
+                let isRecordInSessions = NCManageDatabase.sharedInstance.getMetadatas(predicate: NSPredicate(format: "account == %@ AND serverUrl == %@ AND fileName == %@ AND session != ''", self.appDelegate.account, serverUrl, fileName), sorted: "fileName", ascending: false)
+                if isRecordInSessions.count > 0 {
+                    continue
+                }
+                
+                let metadataForUpload = NCManageDatabase.sharedInstance.createMetadata(account: self.appDelegate.account, fileName: fileName, ocId: NSUUID().uuidString, serverUrl: serverUrl, urlBase: self.appDelegate.urlBase, url: "", contentType: "", livePhoto: livePhoto)
+                
+                metadataForUpload.assetLocalIdentifier = asset.localIdentifier
+                metadataForUpload.session = self.session
+                metadataForUpload.sessionSelector = selectorUploadFile
+                metadataForUpload.size = Double(NCUtilityFileSystem.shared.getFileSize(asset: asset))
+                metadataForUpload.status = Int(k_metadataStatusWaitUpload)
+                
+                if livePhoto {
+                    
+                    let fileNameMove = (fileName as NSString).deletingPathExtension + ".mov"
+                    let ocId = NSUUID().uuidString
+                    let filePath = CCUtility.getDirectoryProviderStorageOcId(ocId, fileNameView: fileNameMove)!
+                    
+                    let semaphore = Semaphore()
+                    CCUtility.extractLivePhotoAsset(asset, filePath: filePath) { (url) in
+                        if let url = url {
+                            let fileSize = NCUtilityFileSystem.shared.getFileSize(filePath: url.path)
+                            let metadataMOVForUpload = NCManageDatabase.sharedInstance.createMetadata(account: self.appDelegate.account, fileName: fileNameMove, ocId:ocId, serverUrl: serverUrl, urlBase: self.appDelegate.urlBase, url: "", contentType: "", livePhoto: livePhoto)
+
+                            metadataForUpload.livePhoto = true
+                            metadataMOVForUpload.livePhoto = true
+                            
+                            metadataMOVForUpload.session = self.session
+                            metadataMOVForUpload.sessionSelector = selectorUploadFile
+                            metadataMOVForUpload.size = fileSize
+                            metadataMOVForUpload.status = Int(k_metadataStatusWaitUpload)
+                            metadataMOVForUpload.typeFile = k_metadataTypeFile_video
+
+                            metadatasMOV.append(metadataMOVForUpload)
+                        }
+                        semaphore.continue()
+                    }
+                    semaphore.wait()
+                }
+                
+                if NCUtility.shared.getMetadataConflict(account: self.appDelegate.account, serverUrl: serverUrl, fileName: fileName) != nil {
+                    metadatasUploadInConflict.append(metadataForUpload)
+                } else {
+                    metadatasNOConflict.append(metadataForUpload)
+                }
+            }
+            
+            // Verify if file(s) exists
+            if metadatasUploadInConflict.count > 0 {
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    if let conflict = UIStoryboard.init(name: "NCCreateFormUploadConflict", bundle: nil).instantiateInitialViewController() as? NCCreateFormUploadConflict {
+                        
+                        conflict.serverUrl = self.serverUrl
+                        conflict.metadatasNOConflict = metadatasNOConflict
+                        conflict.metadatasMOV = metadatasMOV
+                        conflict.metadatasUploadInConflict = metadatasUploadInConflict
+                    
+                        self.appDelegate.window.rootViewController?.present(conflict, animated: true, completion: nil)
+                    }
+                }
+                
+            } else {
+                
+                NCManageDatabase.sharedInstance.addMetadatas(metadatasNOConflict)
+                NCManageDatabase.sharedInstance.addMetadatas(metadatasMOV)
+                
+                self.appDelegate.networkingAutoUpload.startProcess()
+            }
+        
+            DispatchQueue.main.async {self.dismiss(animated: true, completion: nil)  }
+        }
     }
     
     @objc func cancel() {
@@ -353,7 +480,7 @@ class NCCreateFormUploadAssets: XLFormViewController, NCSelectDelegate {
     func previewFileName(valueRename : String?) -> String {
         
         var returnString: String = ""
-        let asset = assets[0] as! PHAsset
+        let asset = assets[0]
         
         if (CCUtility.getOriginalFileName(k_keyFileNameOriginal)) {
             
@@ -398,7 +525,7 @@ class NCCreateFormUploadAssets: XLFormViewController, NCSelectDelegate {
         viewController.hideButtonCreateFolder = false
         viewController.includeDirectoryE2EEncryption = true
         viewController.includeImages = false
-        viewController.layoutViewSelect = k_layout_view_move
+        viewController.keyLayout = k_layout_view_move
         viewController.selectFile = false
         viewController.titleButtonDone = NSLocalizedString("_select_", comment: "")
         viewController.type = ""

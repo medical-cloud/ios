@@ -23,14 +23,11 @@
 
 import Foundation
 
-@objc class NCNetworkingNotificationCenter: NSObject {
+@objc class NCNetworkingNotificationCenter: NSObject, UIDocumentInteractionControllerDelegate {
     @objc public static let shared: NCNetworkingNotificationCenter = {
         let instance = NCNetworkingNotificationCenter()
         
-        NotificationCenter.default.addObserver(instance, selector: #selector(downloadFileStart(_:)), name: NSNotification.Name(rawValue: k_notificationCenter_downloadFileStart), object: nil)
         NotificationCenter.default.addObserver(instance, selector: #selector(downloadedFile(_:)), name: NSNotification.Name(rawValue: k_notificationCenter_downloadedFile), object: nil)
-
-        NotificationCenter.default.addObserver(instance, selector: #selector(uploadFileStart(_:)), name: NSNotification.Name(rawValue: k_notificationCenter_uploadFileStart), object: nil)
         NotificationCenter.default.addObserver(instance, selector: #selector(uploadedFile(_:)), name: NSNotification.Name(rawValue: k_notificationCenter_uploadedFile), object: nil)
         
         return instance
@@ -38,111 +35,91 @@ import Foundation
     
     let appDelegate = UIApplication.shared.delegate as! AppDelegate
     var viewerQuickLook: NCViewerQuickLook?
+    var docController: UIDocumentInteractionController?
     
     //MARK: - Download
 
-    @objc func downloadFileStart(_ notification: NSNotification) {
-        
-//        if let userInfo = notification.userInfo as NSDictionary? {
-//            if let ocId = userInfo["ocId"] as? String, let serverUrl = userInfo["serverUrl"] as? String { }
-//        }
-    }
-    
     @objc func downloadedFile(_ notification: NSNotification) {
             
         if let userInfo = notification.userInfo as NSDictionary? {
             if let metadata = userInfo["metadata"] as? tableMetadata, let selector = userInfo["selector"] as? String, let errorCode = userInfo["errorCode"] as? Int, let errorDescription = userInfo["errorDescription"] as? String {
         
-                if metadata.account != appDelegate.activeAccount { return }
+                if metadata.account != appDelegate.account { return }
                 
                 if errorCode == 0 {
                     
-                    // Synchronized
-                    if selector == selectorDownloadSynchronize {
-                        return
-                    }
+                    let fileURL = URL(fileURLWithPath: CCUtility.getDirectoryProviderStorageOcId(metadata.ocId, fileNameView: metadata.fileNameView))
                     
-                    // Quick Look
-                    if selector == selectorLoadFileQuickLook {
-                        
+                    switch selector {
+                    case selectorLoadFileQuickLook:
                         
                         let fileNamePath = NSTemporaryDirectory() + metadata.fileNameView
-
                         CCUtility.copyFile(atPath: CCUtility.getDirectoryProviderStorageOcId(metadata.ocId, fileNameView: metadata.fileNameView), toPath: fileNamePath)
 
                         viewerQuickLook = NCViewerQuickLook.init()
                         viewerQuickLook?.quickLook(url: URL(fileURLWithPath: fileNamePath), viewController: appDelegate.activeMain)
-                        return
-                    }
-                    
-                    // open View File
-                    if (selector == selectorLoadFileView || selector == selectorLoadFileViewFavorite) && UIApplication.shared.applicationState == UIApplication.State.active {
-                    
-                        if metadata.contentType.contains("opendocument") && !NCUtility.sharedInstance.isRichDocument(metadata) {
-                            metadata.typeFile = k_metadataTypeFile_unknown
-                        }
                         
-                        #if HC
-                        if metadata.typeFile == k_metadataTypeFile_imagemeter {
-                            
-                            if !IMUtility.shared.IMUnzip(metadata: metadata) {
-                                NCContentPresenter.shared.messageNotification("_error_", description: "Bundle imagemeter error. 🤷‍♂️", delay: TimeInterval(k_dismissAfterSecond), type: NCContentPresenter.messageType.error, errorCode: 0)
-                                return
-                            }
-                            
-                            let storyboard = UIStoryboard(name: "IMImagemeter", bundle: nil)
-                            let imagemeterViewer = storyboard.instantiateInitialViewController() as! IMImagemeterViewer
-                            imagemeterViewer.metadata = metadata
-                            imagemeterViewer.modalPresentationStyle = UIModalPresentationStyle.fullScreen
-                            imagemeterViewer.imagemeterViewerDelegate = self
-                            
-                            self.appDelegate.window.rootViewController?.present(imagemeterViewer, animated: true, completion: nil)
-                            
-                            return
-                        }
-                        #else
-                        if metadata.typeFile == k_metadataTypeFile_imagemeter {
-                            NCMainCommon.sharedInstance.openIn(metadata: metadata, selector: selector)
-                            return
-                        }
-                        #endif
+                    case selectorLoadFileView:
                         
-                        if metadata.typeFile == k_metadataTypeFile_compress || metadata.typeFile == k_metadataTypeFile_unknown {
+                        if UIApplication.shared.applicationState == UIApplication.State.active {
+                                                        
+                            if metadata.contentType.contains("opendocument") && !NCUtility.shared.isRichDocument(metadata) {
+                                
+                                openIn(fileURL: fileURL, selector: selector)
+                                
+                            } else if metadata.typeFile == k_metadataTypeFile_compress || metadata.typeFile == k_metadataTypeFile_unknown {
 
-                            NCMainCommon.sharedInstance.openIn(metadata: metadata, selector: selector)
-                            
-                        } else {
-                            
-                            if appDelegate.activeMain.view.window != nil {
-                                appDelegate.activeMain.shouldPerformSegue(metadata, selector: selector)
-                            } else if appDelegate.activeFavorites.view.window != nil {
-                                appDelegate.activeFavorites.shouldPerformSegue(metadata, selector: selector)
+                                openIn(fileURL: fileURL, selector: selector)
+                                
+                            } else if metadata.typeFile == k_metadataTypeFile_imagemeter {
+                                
+                                openIn(fileURL: fileURL, selector: selector)
+                                
+                            } else {
+                                
+                                if self.appDelegate.activeViewController is CCMain {
+                                    (self.appDelegate.activeViewController as! CCMain).shouldPerformSegue(metadata, selector: "")
+                                } else if self.appDelegate.activeViewController is NCFavorite {
+                                    (self.appDelegate.activeViewController as! NCFavorite).segue(metadata: metadata)
+                                } else if self.appDelegate.activeViewController is NCOffline {
+                                    (self.appDelegate.activeViewController as! NCOffline).segue(metadata: metadata)
+                                }
                             }
                         }
-                    }
-                    
-                    // Open in...
-                    if (selector == selectorOpenIn || selector == selectorOpenInDetail) && UIApplication.shared.applicationState == UIApplication.State.active {
-
-                        NCMainCommon.sharedInstance.openIn(metadata: metadata, selector: selector)
-                    }
-                    
-                    // Save to Photo Album
-                    if selector == selectorSave {
+                        
+                    case selectorOpenIn, selectorOpenInDetail:
+                        
+                        if UIApplication.shared.applicationState == UIApplication.State.active {
+                            
+                            openIn(fileURL: fileURL, selector: selector)
+                        }
+                        
+                    case selectorSaveAlbum:
+                        
                         appDelegate.activeMain.save(toPhotoAlbum: metadata)
-                    }
-                    
-                    // Copy File
-                    if selector == selectorLoadCopy {
-                        appDelegate.activeMain.copyFile(toPasteboard: metadata)
-                    }
-                    
-                    // Set as available offline
-                    if selector == selectorLoadOffline {
+                        
+                    case selectorLoadCopy:
+                        
+                        var items = UIPasteboard.general.items
+                        
+                        do {
+                            let etagPasteboard = try NSKeyedArchiver.archivedData(withRootObject: metadata.ocId, requiringSecureCoding: false)
+                            items.append([k_metadataKeyedUnarchiver:etagPasteboard])
+                        } catch {
+                            print("error")
+                        }
+                        
+                        UIPasteboard.general.setItems(items, options: [:])
+                        
+                    case selectorLoadOffline:
                         
                         NCManageDatabase.sharedInstance.setLocalFile(ocId: metadata.ocId, offline: true)
+                        
+                    default:
+                        
+                        break
                     }
-                                         
+                            
                 } else {
                     
                     // File do not exists on server, remove in local
@@ -156,6 +133,7 @@ import Foundation
                         NCManageDatabase.sharedInstance.deleteLocalFile(predicate: NSPredicate(format: "ocId == %@", metadata.ocId))
                         
                     } else {
+                        
                         NCContentPresenter.shared.messageNotification("_download_file_", description: errorDescription, delay: TimeInterval(k_dismissAfterSecond), type: NCContentPresenter.messageType.error, errorCode: errorCode)
                     }
                 }
@@ -163,24 +141,34 @@ import Foundation
         }
     }
     
-    //MARK: - Upload
-
-    @objc func uploadFileStart(_ notification: NSNotification) {
+    func openIn(fileURL: URL, selector: String?) {
         
-//        if let userInfo = notification.userInfo as NSDictionary? {
-//            if let ocId = userInfo["ocId"] as? String, let serverUrl = userInfo["serverUrl"] as? String, let _ = userInfo["task"] as? URLSessionUploadTask { }
-//        }
+        docController = UIDocumentInteractionController(url: fileURL)
+        docController?.delegate = self
+        
+        if selector == selectorOpenInDetail {
+            guard let barButtonItem = appDelegate.activeDetail.navigationItem.rightBarButtonItem else { return }
+            guard let buttonItemView = barButtonItem.value(forKey: "view") as? UIView else { return }
+            
+            docController?.presentOptionsMenu(from: buttonItemView.frame, in: buttonItemView, animated: true)
+            
+        } else {
+            guard let splitViewController = appDelegate.window?.rootViewController as? UISplitViewController, let view = splitViewController.viewControllers.first?.view, let frame = splitViewController.viewControllers.first?.view.frame else {
+                return }
+    
+            docController?.presentOptionsMenu(from: frame, in: view, animated: true)
+        }
     }
     
+    //MARK: - Upload
+
     @objc func uploadedFile(_ notification: NSNotification) {
     
         if let userInfo = notification.userInfo as NSDictionary? {
             if let metadata = userInfo["metadata"] as? tableMetadata, let errorCode = userInfo["errorCode"] as? Int, let errorDescription = userInfo["errorDescription"] as? String {
                                                 
-                if metadata.account == appDelegate.activeAccount {
-                    if errorCode == 0 {
-                        //appDelegate.startLoadAutoUpload()
-                    } else {
+                if metadata.account == appDelegate.account {
+                    if errorCode != 0 {
                         if errorCode != -999 && errorCode != 401 && errorDescription != "" {
                             NCContentPresenter.shared.messageNotification("_upload_file_", description: errorDescription, delay: TimeInterval(k_dismissAfterSecond), type: NCContentPresenter.messageType.error, errorCode: errorCode)
                         }
@@ -189,6 +177,5 @@ import Foundation
             }
         }
     }
-    
 }
 

@@ -25,6 +25,8 @@
 #import "SVGKExporterUIImage.h" // needed for .UIImage property
 #endif
 
+#import "SVGKDefine_Private.h"
+
 #if ENABLE_GLOBAL_IMAGE_CACHE_FOR_SVGKIMAGE_IMAGE_NAMED
 @interface SVGKImageCacheLine : NSObject
 @property(nonatomic) int numberOfInstances;
@@ -108,7 +110,7 @@ static NSMutableDictionary* globalSVGKImageCache;
 
 + (SVGKImage *)imageNamed:(NSString *)name inBundle:(NSBundle *)bundle
 {
-     return [self imageNamed:name inBundle:[NSBundle mainBundle] withCacheKey:@""];
+     return [self imageNamed:name inBundle:bundle withCacheKey:@""];
 }
 
 + (SVGKImage *)imageNamed:(NSString *)name inBundle:(NSBundle *)bundle withCacheKey:(NSString *)key

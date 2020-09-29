@@ -68,7 +68,7 @@ class NCViewerNextcloudText: WKWebView, WKNavigationDelegate, WKScriptMessageHan
         request.addValue(language, forHTTPHeaderField: "Accept-Language")
                 
         if editor == k_editor_onlyoffice {
-            customUserAgent = NCUtility.sharedInstance.getCustomUserAgentOnlyOffice()
+            customUserAgent = NCUtility.shared.getCustomUserAgentOnlyOffice()
         } else {
             customUserAgent = CCUtility.getUserAgent()
         }
@@ -102,7 +102,7 @@ class NCViewerNextcloudText: WKWebView, WKNavigationDelegate, WKScriptMessageHan
             }
             
             if message.body as? String == "share" {
-                NCMainCommon.sharedInstance.openShare(ViewController: viewController, metadata: metadata, indexPage: 2)
+                NCMainCommon.shared.openShare(ViewController: viewController, metadata: metadata, indexPage: 2)
             }
             
             if message.body as? String == "loading" {
@@ -139,6 +139,6 @@ class NCViewerNextcloudText: WKWebView, WKNavigationDelegate, WKScriptMessageHan
     }
     
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        NCUtility.sharedInstance.stopActivityIndicator()
+        NCUtility.shared.stopActivityIndicator()
     }
 }

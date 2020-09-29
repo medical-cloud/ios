@@ -53,12 +53,6 @@
 + (BOOL)getEnableTouchFaceID;
 + (void)setEnableTouchFaceID:(BOOL)set;
 
-+ (NSString *)getOrderSettings;
-+ (void)setOrderSettings:(NSString *)order;
-
-+ (BOOL)getAscendingSettings;
-+ (void)setAscendingSettings:(BOOL)ascendente;
-
 + (NSString *)getGroupBySettings;
 + (void)setGroupBySettings:(NSString *)groupby;
 
@@ -67,8 +61,8 @@
 
 + (NSString *)getIncrementalNumber;
 
-+ (NSString *)getActiveAccountExt;
-+ (void)setActiveAccountExt:(NSString *)activeAccount;
++ (NSString *)getAccountExt;
++ (void)setAccountExt:(NSString *)account;
 
 + (NSString *)getServerUrlExt;
 + (void)setServerUrlExt:(NSString *)serverUrl;
@@ -84,9 +78,6 @@
 
 + (NSString *)getHint;
 + (void)setHint:(NSString *)hint;
-
-+ (BOOL)getDirectoryOnTop;
-+ (void)setDirectoryOnTop:(BOOL)directoryOnTop;
 
 + (BOOL)getOriginalFileName:(NSString *)key;
 + (void)setOriginalFileName:(BOOL)value key:(NSString *)key;
@@ -174,6 +165,14 @@
 + (NSString *)getMediaSortDate;
 + (void)setMediaSortDate:(NSString *)value;
 
++ (NSInteger)getTextRecognitionStatus;
++ (void)setTextRecognitionStatus:(NSInteger)value;
++ (NSString *)getDirectoryScanDocuments;
++ (void)setDirectoryScanDocuments:(NSString *)value;
+
++ (NSInteger)getLogLevel;
++ (void)setLogLevel:(NSInteger)value;
+
 // ===== Varius =====
 
 + (BOOL)addSkipBackupAttributeToItemAtURL:(NSURL *)URL;
@@ -196,9 +195,7 @@
 + (void)createDirectoryStandard;
 
 + (NSURL *)getDirectoryGroup;
-+ (NSString *)getHomeServerUrlActiveUrl:(NSString *)activeUrl;
-+ (NSString *)getStringUser:(NSString *)activeUser activeUrl:(NSString *)activeUrl;
-+ (NSString *)getDirectoryActiveUser:(NSString *)activeUser activeUrl:(NSString *)activeUrl;
++ (NSString *)getStringUser:(NSString *)user urlBase:(NSString *)urlBase;
 + (NSString *)getDirectoryDocuments;
 + (NSString *)getDirectoryReaderMetadata;
 + (NSString *)getDirectoryAudio;
@@ -228,12 +225,10 @@
 + (void)createDirectoryAtPath:(NSString *)atPath;
 
 + (NSString *)deletingLastPathComponentFromServerUrl:(NSString *)serverUrl;
-+ (NSString *)firtsPathComponentFromServerUrl:(NSString *)serverUrl activeUrl:(NSString *)activeUrl;
-+ (NSString *)getLastPathFromServerUrl:(NSString *)serverUrl activeUrl:(NSString *)activeUrl;
-+ (NSString *)returnPathfromServerUrl:(NSString *)serverUrl activeUrl:(NSString *)activeUrl;
-+ (NSString *)returnFileNamePathFromFileName:(NSString *)metadataFileName serverUrl:(NSString *)serverUrl activeUrl:(NSString *)activeUrl;
-
-+ (NSArray *)createNameSubFolder:(PHFetchResult *)assets;
++ (NSString *)getLastPathFromServerUrl:(NSString *)serverUrl urlBase:(NSString *)urlBase;
++ (NSString *)returnPathfromServerUrl:(NSString *)serverUrl urlBase:(NSString *)urlBase account:(NSString *)account;
++ (NSString *)returnFileNamePathFromFileName:(NSString *)metadataFileName serverUrl:(NSString *)serverUrl urlBase:(NSString *)urlBase account:(NSString *)account;
++ (NSArray *)createNameSubFolder:(NSArray *)assets;
 
 + (NSString *)getDirectoryScan;
 
@@ -245,12 +240,13 @@
 
 + (NSString *)getTimeIntervalSince197;
 
-+ (void)extractImageVideoFromAssetLocalIdentifierForUpload:(tableMetadata *)metadata notification:(BOOL)notification completion:(void(^)(tableMetadata *newMetadata, NSString* fileNamePath))completion;
++ (void)extractImageVideoFromAssetLocalIdentifierForUpload:(tableMetadata *)metadataForUpload notification:(BOOL)notification completion:(void(^)(tableMetadata *newMetadata, NSString* fileNamePath))completion;
++ (void)extractLivePhotoAsset:(PHAsset*)asset filePath:(NSString *)filePath withCompletion:(void (^)(NSURL* url))completion;
 
 // ===== E2E Encrypted =====
 
 + (NSString *)generateRandomIdentifier;
-+ (BOOL)isFolderEncrypted:(NSString *)serverUrl e2eEncrypted:(BOOL)e2eEncrypted account:(NSString *)account;
++ (BOOL)isFolderEncrypted:(NSString *)serverUrl e2eEncrypted:(BOOL)e2eEncrypted account:(NSString *)account urlBase:(NSString *)urlBase;
 
 // ===== Share Permissions =====
 
